@@ -1,0 +1,14 @@
+{
+  "name": "discord-github-monitor",
+  "version": "1.0.0",
+  "description": "A simple Discord bot that monitors Git repositories for new releases or any other public changes.",
+  "scripts": {
+    "start": "node src/main.mjs"
+  },
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "discord.js": "^14.7.1",
+    "github-api": "^3.4.0",
+    "simple-git": "^3.15.1"
+  }
+}
