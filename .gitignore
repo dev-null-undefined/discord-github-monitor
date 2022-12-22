@@ -1,6 +1,8 @@
 ### Secret config
-config/config.json
+src/config/config.json
 
+### TypeScript
+build/
 
 ### IDE
 .idea

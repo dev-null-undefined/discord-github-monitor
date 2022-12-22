@@ -1,26 +1,38 @@
 import fs from 'fs';
 import chalk from 'chalk';
 
-export const LogLevel = {
-    INFO: 0,
-    WARN: 1,
-    ERROR: 2,
-    DEBUG: 3
+export enum LogLevel {
+    INFO,
+    WARN,
+    ERROR,
+    DEBUG
 }
 
 export class DecoratorSettings {
-    level = null;
-    levels = [LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.DEBUG];
-    prefix = "";
-    suffix = "";
-    decorator = (message, level) => message;
-    suffixFunc = () => "";
-    prefixFunc = () => "";
+    level: LogLevel | null;
+    levels: LogLevel[] | null;
+    prefix: string;
+    suffix: string;
+    decorator: (message: string, level: LogLevel) => string;
+    suffixFunc: () => string;
+    prefixFunc: () => string;
+
+    constructor() {
+        this.level = null;
+        this.levels = [LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.DEBUG];
+        this.prefix = "";
+        this.suffix = "";
+        this.decorator = (message: string, level: LogLevel) => message;
+        this.suffixFunc = () => "";
+        this.prefixFunc = () => "";
+    }
 }
 
-export class CustomDecorator {
-    constructor(decoratorSettings) {
-        if (!decoratorSettings instanceof DecoratorSettings) {
+class CustomDecorator {
+    private _settings: DecoratorSettings;
+
+    constructor(decoratorSettings: DecoratorSettings) {
+        if (!(decoratorSettings instanceof DecoratorSettings)) {
             throw new Error("DecoratorSettings expected");
         }
         if (decoratorSettings.levels !== null && decoratorSettings.level !== null) {
@@ -29,7 +41,7 @@ export class CustomDecorator {
         this._settings = decoratorSettings;
     }
 
-    decorate(text, level) {
+    decorate(text: string, level: LogLevel):string {
         if (this._settings.level !== null && level !== this._settings.level) {
             return text;
         }
@@ -41,6 +53,9 @@ export class CustomDecorator {
 }
 
 export class Logger {
+    private _log: (message: string) => void;
+    private _decorators: CustomDecorator[];
+
     constructor(output = console.log) {
         switch (typeof output) {
             case 'function':
@@ -60,7 +75,7 @@ export class Logger {
                 throw new Error('Invalid output type');
         }
         this._decorators = [];
-        this.decorate((message, level) => {
+        this.decorate((message: string, level: LogLevel) => {
             switch (level) {
                 case LogLevel.INFO:
                     return chalk.blue(message);
@@ -76,7 +91,7 @@ export class Logger {
         });
     }
 
-    decorate(decorator, level = null) {
+    decorate(decorator: ((message: string, level: LogLevel) => string) | CustomDecorator | DecoratorSettings, level = null) {
         switch (typeof decorator) {
             case 'function':
                 const decoratorSettings = new DecoratorSettings();
@@ -87,8 +102,8 @@ export class Logger {
                 break;
             case 'object':
                 if (decorator instanceof CustomDecorator) {
-                    this._decorators.push(decorator.decorate);
-                } else if(decorator instanceof DecoratorSettings) {
+                    this._decorators.push(decorator);
+                } else if (decorator instanceof DecoratorSettings) {
                     this._decorators.push(new CustomDecorator(decorator));
                 } else {
                     throw new Error('Invalid decorator type');
@@ -99,7 +114,7 @@ export class Logger {
         }
     }
 
-    log(message, level = LogLevel.INFO) {
+    log(message:string, level:LogLevel = LogLevel.INFO) {
         this._decorators.forEach(decorator => {
             message = decorator.decorate(message, level);
         });

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "module": "NodeNext",
+    "target": "es2022",
+    "sourceMap": true,
+    "outDir": "build",
+    "rootDir": "src",
+    "noImplicitAny": true,
+    "strict": true,
+  },
+  "ts-node": {
+    "esm": true
+  },
+  "exclude": [
+    "node_modules"
+  ],
+  "include": [
+    "src/**/*"
+  ]
+}

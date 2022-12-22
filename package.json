@@ -1,14 +1,23 @@
 {
   "name": "discord-github-monitor",
   "version": "1.0.0",
+  "author": "dev-null-undefined",
   "description": "A simple Discord bot that monitors Git repositories for new releases or any other public changes.",
   "scripts": {
-    "start": "node src/main.mjs"
+    "start:dev": "npx nodemon",
+    "build": "rimraf ./build && tsc",
+    "start": "npm run build && node build/main.js"
   },
+  "type": "module",
   "dependencies": {
     "chalk": "^5.2.0",
     "discord.js": "^14.7.1",
     "github-api": "^3.4.0",
-    "simple-git": "^3.15.1"
+    "nodemon": "^2.0.20",
+    "rimraf": "^3.0.2",
+    "simple-git": "^3.15.1",
+    "ts-node": "^10.9.1",
+    "tsc": "^2.0.4",
+    "typescript": "^4.9.4"
   }
 }
