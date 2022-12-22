@@ -1,5 +1,5 @@
 import Discord, {ClientUser, GuildChannel, GuildTextBasedChannel} from "discord.js";
-import {Logger, LogLevel} from "./logger.js";
+import {DecoratorSettings, Logger, LogLevel} from "./logger.js";
 
 class ResolvablePromise<T> {
     resolve: (value: T | PromiseLike<T>) => void;
@@ -39,15 +39,24 @@ export class Client {
     private _loggedIn: ResolvablePromise<void> | null;
     private _ready: ResolvablePromise<void> | null;
 
+    private _decoratorSettings: DecoratorSettings;
+
 
     constructor(token: string, logger = new Logger()) {
-        this._logger = logger;
+        this._logger = logger.clone();
+        this._decoratorSettings = new DecoratorSettings();
+        this._decoratorSettings.prefix = "[Client {loading}] ";
+        this._logger.decorate(this._decoratorSettings);
 
         this._token = token;
         this._intents = [Discord.GatewayIntentBits.Guilds, Discord.GatewayIntentBits.GuildMembers, Discord.GatewayIntentBits.GuildBans, Discord.GatewayIntentBits.GuildEmojisAndStickers, Discord.GatewayIntentBits.GuildIntegrations, Discord.GatewayIntentBits.GuildWebhooks, Discord.GatewayIntentBits.GuildInvites, Discord.GatewayIntentBits.GuildVoiceStates, Discord.GatewayIntentBits.GuildPresences, Discord.GatewayIntentBits.GuildMessages, Discord.GatewayIntentBits.GuildMessageReactions, Discord.GatewayIntentBits.GuildMessageTyping, Discord.GatewayIntentBits.DirectMessages, Discord.GatewayIntentBits.DirectMessageReactions, Discord.GatewayIntentBits.DirectMessageTyping, Discord.GatewayIntentBits.MessageContent];
         this._client = new Discord.Client({intents: this._intents});
         this._loggedIn = new ResolvablePromise();
         this._ready = new ResolvablePromise();
+
+        this.readyPromise.then(() => {
+            this._decoratorSettings.prefix = `[Client {${this._user.username}}] `;
+        });
 
         this._client.on("ready", () => {
             if (!this._ready) {
@@ -66,9 +75,9 @@ export class Client {
             if (message.author.bot) return;
             // test if message is from guild and GuildTextBasedChannel
             if (message.guildId && (message.channel instanceof GuildChannel) && message.inGuild()) {
-                logger.log(`Message received from ${message.author.username} in ${message.channel.name} in ${message.guild.name} "${message.content}"`);
+                this._logger.log(`Message received from ${message.author.username} in ${message.channel.name} in ${message.guild.name} "${message.content}"`);
             } else {
-                logger.log(`Message received from ${message.author.username} "${message.content}"`);
+                this._logger.log(`Message received from ${message.author.username} "${message.content}"`);
             }
         });
     }
