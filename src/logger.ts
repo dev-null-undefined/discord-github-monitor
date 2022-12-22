@@ -107,20 +107,28 @@ export class Logger {
         });
     }
 
-    decorate(decorator: ((message: string, level: LogLevel) => string) | CustomDecorator | DecoratorSettings, level = null) {
+    _addDecorator(decorator: CustomDecorator, prepend: boolean) {
+        if (prepend) {
+            this._decorators.unshift(decorator);
+        } else {
+            this._decorators.push(decorator);
+        }
+    }
+
+    decorate(decorator: ((message: string, level: LogLevel) => string) | CustomDecorator | DecoratorSettings, prepend:boolean = false, level = null) {
         switch (typeof decorator) {
             case 'function':
                 const decoratorSettings = new DecoratorSettings();
                 decoratorSettings.decorator = decorator;
                 decoratorSettings.level = level;
                 const customDecorator = new CustomDecorator(decoratorSettings);
-                this._decorators.push(customDecorator);
+                this._addDecorator(customDecorator, prepend);
                 break;
             case 'object':
                 if (decorator instanceof CustomDecorator) {
-                    this._decorators.push(decorator);
+                    this._addDecorator(decorator, prepend);
                 } else if (decorator instanceof DecoratorSettings) {
-                    this._decorators.push(new CustomDecorator(decorator));
+                    this._addDecorator(new CustomDecorator(decorator), prepend);
                 } else {
                     throw new Error('Invalid decorator type');
                 }
