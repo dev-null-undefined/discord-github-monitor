@@ -16,6 +16,7 @@ export class DecoratorSettings {
     decorator: (message: string, level: LogLevel) => string;
     suffixFunc: () => string;
     prefixFunc: () => string;
+    priority: number;
 
     constructor() {
         this.level = null;
@@ -25,6 +26,7 @@ export class DecoratorSettings {
         this.decorator = (message: string, level: LogLevel) => message;
         this.suffixFunc = () => "";
         this.prefixFunc = () => "";
+        this.priority = 100;
     }
 
     clone(): DecoratorSettings {
@@ -36,6 +38,7 @@ export class DecoratorSettings {
         clone.decorator = this.decorator;
         clone.suffixFunc = this.suffixFunc;
         clone.prefixFunc = this.prefixFunc;
+        clone.priority = this.priority;
         return clone;
     }
 }
@@ -63,14 +66,57 @@ class CustomDecorator {
         return this._settings.decorator(this._settings.prefixFunc() + this._settings.prefix + text + this._settings.suffix + this._settings.suffixFunc(), level);
     }
 
+    get priority(): number {
+        return this._settings.priority;
+    }
+
     clone(): CustomDecorator {
         return new CustomDecorator(this._settings.clone());
     }
 }
 
+class PriorityList<T> {
+
+    private _list: T[];
+    private readonly _priority_getter: (item: T) => number;
+
+    constructor(priority_getter: ((item: T) => number) = (item: T) => Number(item)) {
+        this._list = [];
+        this._priority_getter = priority_getter;
+    }
+
+    add(item: T) {
+        for (let i = 0; i < this._list.length; i++) {
+            if (this._priority_getter(item) > this._priority_getter(this._list[i])) {
+                this._list.splice(i, 0, item);
+                return;
+            }
+        }
+        this._list.push(item);
+    }
+
+    *[Symbol.iterator]() {
+        for (let i = 0; i < this._list.length; i++) {
+            yield this._list[i];
+        }
+    }
+
+    get length(): number {
+        return this._list.length;
+    }
+
+    get(index: number): T {
+        return this._list[index];
+    }
+
+    forEach(callback: (item: T, index: number) => void) {
+        this._list.forEach(callback);
+    }
+}
+
 export class Logger {
     private _log: (message: string) => void;
-    private _decorators: CustomDecorator[];
+    private _decorators: PriorityList<CustomDecorator>;
 
     constructor(output = console.log) {
         switch (typeof output) {
@@ -90,7 +136,7 @@ export class Logger {
             default:
                 throw new Error('Invalid output type');
         }
-        this._decorators = [];
+        this._decorators = new PriorityList<CustomDecorator>((decorator: CustomDecorator) => decorator.priority);
         this.decorate((message: string, level: LogLevel) => {
             switch (level) {
                 case LogLevel.INFO:
@@ -107,28 +153,20 @@ export class Logger {
         });
     }
 
-    _addDecorator(decorator: CustomDecorator, prepend: boolean) {
-        if (prepend) {
-            this._decorators.unshift(decorator);
-        } else {
-            this._decorators.push(decorator);
-        }
-    }
-
-    decorate(decorator: ((message: string, level: LogLevel) => string) | CustomDecorator | DecoratorSettings, prepend:boolean = false, level = null) {
+    decorate(decorator: ((message: string, level: LogLevel) => string) | CustomDecorator | DecoratorSettings, level = null) {
         switch (typeof decorator) {
             case 'function':
                 const decoratorSettings = new DecoratorSettings();
                 decoratorSettings.decorator = decorator;
                 decoratorSettings.level = level;
                 const customDecorator = new CustomDecorator(decoratorSettings);
-                this._addDecorator(customDecorator, prepend);
+                this._decorators.add(customDecorator);
                 break;
             case 'object':
                 if (decorator instanceof CustomDecorator) {
-                    this._addDecorator(decorator, prepend);
+                    this._decorators.add(decorator);
                 } else if (decorator instanceof DecoratorSettings) {
-                    this._addDecorator(new CustomDecorator(decorator), prepend);
+                    this._decorators.add(new CustomDecorator(decorator));
                 } else {
                     throw new Error('Invalid decorator type');
                 }
@@ -148,7 +186,7 @@ export class Logger {
     clone(): Logger {
         const logger = new Logger();
         this._decorators.forEach(decorator => {
-            logger._decorators.push(decorator.clone());
+            logger._decorators.add(decorator.clone());
         });
         return logger;
     }
