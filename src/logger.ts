@@ -26,6 +26,18 @@ export class DecoratorSettings {
         this.suffixFunc = () => "";
         this.prefixFunc = () => "";
     }
+
+    clone(): DecoratorSettings {
+        const clone = new DecoratorSettings();
+        clone.level = this.level;
+        clone.levels = this.levels;
+        clone.prefix = this.prefix;
+        clone.suffix = this.suffix;
+        clone.decorator = this.decorator;
+        clone.suffixFunc = this.suffixFunc;
+        clone.prefixFunc = this.prefixFunc;
+        return clone;
+    }
 }
 
 class CustomDecorator {
@@ -49,6 +61,10 @@ class CustomDecorator {
             return text;
         }
         return this._settings.decorator(this._settings.prefixFunc() + this._settings.prefix + text + this._settings.suffix + this._settings.suffixFunc(), level);
+    }
+
+    clone(): CustomDecorator {
+        return new CustomDecorator(this._settings.clone());
     }
 }
 
@@ -119,5 +135,13 @@ export class Logger {
             message = decorator.decorate(message, level);
         });
         this._log(message);
+    }
+
+    clone(): Logger {
+        const logger = new Logger();
+        this._decorators.forEach(decorator => {
+            logger._decorators.push(decorator.clone());
+        });
+        return logger;
     }
 }
