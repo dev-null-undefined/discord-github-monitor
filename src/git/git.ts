@@ -22,10 +22,21 @@ export class GitController {
     private _git: SimpleGit;
     private _path: path;
 
-    constructor(settings: GitControllerSettings, path: path) {
+    private constructor(settings: GitControllerSettings, path: path) {
         this.settings = settings;
         this._git = simpleGit(path);
         this._path = path;
+    }
+
+    static load(settings: GitControllerSettings, path: path): GitController {
+        return new GitController(settings, path);
+    }
+
+    static create(settings: GitControllerSettings, path: path): GitController {
+        let controller = new GitController(settings, path);
+        controller._git.init();
+        controller._git.addRemote("origin", controller.settings.url);
+        return controller;
     }
 }
 
@@ -38,7 +49,7 @@ export class GitControllerDatabase {
 
         private constructor() {
             this.storage.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
-                this._controllers.set(settings.data.url, new GitController(settings.data, settings.path));
+                this._controllers.set(settings.data.url, GitController.load(settings.data, settings.path));
             });
         }
 
@@ -55,7 +66,7 @@ export class GitControllerDatabase {
             } else {
                 const settings = new GitControllerSettings(url);
                 const path = this.storage.save(GitControllerSettings.typeId, settings);
-                const controller = new GitController(settings, path);
+                const controller = GitController.create(settings, path);
                 this._controllers.set(url, controller);
                 return controller;
             }
