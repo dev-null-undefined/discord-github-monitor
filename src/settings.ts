@@ -19,7 +19,7 @@ function assertAllPropertiesAreSet(object: any) {
             if (object[key] === undefined) {
                 throw new Error("Property " + key + " is not set!");
             } else if (typeof object[key] === 'object') {
-                object[key]._assertAllPropertiesAreSet();
+                assertAllPropertiesAreSet(object[key]);
             } else if (typeof object[key] === "string" && object[key] === Settings.unsetString) {
                 throw new Error("Property " + key + " is not set!");
             }
