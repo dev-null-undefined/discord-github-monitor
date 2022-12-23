@@ -1,20 +1,16 @@
-import {Logger,DecoratorSettings} from "./logger.js";
-import config from "./config/config.json" assert {type: "json"};
+import {Logger, DateDecoratorSettings, LogLevelDecoratorSettings} from "./logger.js";
 import {Client} from "./client.js";
+import {Settings} from "./settings.js";
+
+const logger = Logger.getGlobalInstance();
+logger.decorate(new DateDecoratorSettings());
+logger.decorate(new LogLevelDecoratorSettings());
+
+const settings = Settings.getInstance();
 
 
 async function start() {
-    const logger = new Logger();
-
-    let dateDecoratorSettings = new DecoratorSettings();
-    dateDecoratorSettings.prefixFunc = () => {
-        return new Date().toLocaleString();
-    };
-    dateDecoratorSettings.prefix = " ["
-    dateDecoratorSettings.suffix = "]"
-    logger.decorate(dateDecoratorSettings);
-
-    const client = new Client(config.token, logger);
+    const client = new Client(settings.token, logger);
     client.login();
 
     await client.loggedInPromise;
