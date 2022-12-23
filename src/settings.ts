@@ -51,6 +51,10 @@ export class Settings {
         return Settings._instance;
     }
 
-    token: string = Settings.unsetString;
     storagePath: string = Settings.unsetString;
+    discord = {
+        token: Settings.unsetString,
+        ownerId: Settings.unsetString,
+        applicationId: Settings.unsetString,
+    }
 }

@@ -24,13 +24,13 @@ manager.addTask(new SimpleTask("StorageSetup", begin, async () => {
     StorageManager.configure(Settings.instance);
 }));
 
-
 manager.addTask(new SimpleTask("GitSetup", begin, async () => {
     const git = GitControllerDatabase.instance;
 }));
 
 manager.addTask(new SimpleTask("DiscordSetup", begin, async () => {
-    const client = new Client(Settings.instance.token, Logger.globalInstance);
+    const settings = Settings.instance;
+    const client = new Client(settings.discord.token, Logger.globalInstance);
     client.login();
 
     await client.loggedInPromise;
