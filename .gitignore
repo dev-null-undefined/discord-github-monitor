@@ -1,5 +1,5 @@
 ### Secret config
-src/config/config.json
+config/settings.json
 
 ### TypeScript
 build/
