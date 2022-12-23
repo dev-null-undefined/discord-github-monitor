@@ -20,7 +20,7 @@ export class DecoratorSettings {
 
     constructor() {
         this.level = null;
-        this.levels = [LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.DEBUG];
+        this.levels = null;
         this.prefix = "";
         this.suffix = "";
         this.decorator = (message: string, level: LogLevel) => message;
