@@ -22,7 +22,8 @@ export class GitCommand extends Command {
                 subcommand
                     .setName('watch')
                     .setDescription('Create new git watcher')
-                    .addStringOption(option => option.setName('url').setDescription("Git repository url").setRequired(true).setAutocomplete(true)))
+                    .addStringOption(option => option.setName('new-url').setDescription("Git repository url").setRequired(true).setAutocomplete(true))
+                    .addStringOption(option => option.setName('branch').setDescription("Git branch").setRequired(false).setAutocomplete(true)));
     }
 
     execute(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -36,21 +37,35 @@ export class GitCommand extends Command {
                 })
                 return interaction.reply({content: content, ephemeral: true}).then();
             case "watch":
-                break;
+                const newUrl = interaction.options.getString('new-url', true);
+                const branch = interaction.options.getString('branch', false);
+                this._gitDatabase.getController(newUrl, branch ? branch.split(",") : []);
+                return interaction.reply({content: "Added new watcher for " + newUrl, ephemeral: true}).then();
         }
         return Promise.resolve(undefined);
     }
 
     autoComplete(interaction: Discord.AutocompleteInteraction): Promise<void> {
         let focusedOption = interaction.options.getFocused(true);
+        let choice: string[] = [];
         switch (focusedOption.name) {
             case "url":
-                let choices = this._gitDatabase.listURLs();
-                const filtered = choices.filter(choice => choice.startsWith(focusedOption.value));
-                return interaction.respond(
-                    filtered.map(choice => ({name: choice, value: choice})),
-                );
+                let urls = this._gitDatabase.listURLs();
+                choice = urls.filter(choice => choice.startsWith(focusedOption.value));
+                break;
+            case "new-url":
+                if (focusedOption.value.split(":").length == 2) {
+                    choice.push(`https://github.com/${focusedOption.value.replace(":", "/")}`);
+                } else {
+                    choice.push("https://github.com/" + focusedOption.value);
+                }
+                break;
+            case "branch":
+                if (focusedOption.value.indexOf("master,") === -1) choice.push("master," + focusedOption.value);
+                if (focusedOption.value.indexOf("main,") === -1) choice.push("main," + focusedOption.value);
         }
-        return Promise.resolve(undefined);
+        return interaction.respond(
+            choice.map(choice => ({name: choice, value: choice})),
+        );
     }
 }
