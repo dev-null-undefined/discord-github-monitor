@@ -1,4 +1,6 @@
-enum EnumStatus {
+import {Logger, LogLevel} from "../logger.js";
+
+export enum EnumStatus {
     CREATED,
     STARTED,
     FINISHED,
@@ -8,7 +10,6 @@ enum EnumStatus {
 export class Status {
 
     private _status: EnumStatus;
-    private _statusChangeCallbacks: Array<() => void> = [];
 
     constructor(status: EnumStatus) {
         this._status = status;
@@ -20,11 +21,7 @@ export class Status {
 
     set status(status: EnumStatus) {
         this._status = status;
-        this._statusChangeCallbacks.forEach(callback => callback());
-    }
-
-    addStatusChangeCallback(callback: () => void) {
-        this._statusChangeCallbacks.push(callback);
+        Logger.globalInstance.log("Task status changed to " + EnumStatus[this._status], LogLevel.DEBUG);
     }
 }
 
@@ -48,18 +45,28 @@ export abstract class Task {
 
     abstract execute(): Promise<void>;
 
-    onStatusChange(callback: (task: Task, status: Status) => void): void {
-        this.status.addStatusChangeCallback(() => callback(this, this.status));
-    }
+    isPriorTo(task: Task, date = new Date()): boolean {
+        let thisDiff = this.dueDate.getTime() - date.getTime();
+        let otherDiff = task.dueDate.getTime() - date.getTime();
 
-    compare(task: Task, date = new Date()): number {
-        let timeDiff = this.dueDate.getTime() - date.getTime();
-        let otherTimeDiff = task.dueDate.getTime() - date.getTime();
+        // TODO:
+        // if there is task with low priority that should have been already executed,
+        // but there is a task with high priority that should be executed later,
+        // it would be safer to wait for the high priority task to be executed first in case
+        // the low priority task fails or takes a long time to execute
+        thisDiff *= this.priority;
+        otherDiff *= task.priority;
 
-        timeDiff *= this.priority;
-        otherTimeDiff *= task.priority;
-
-        return timeDiff - otherTimeDiff;
+        if (thisDiff < otherDiff) {
+            return true;
+        } else if (thisDiff == otherDiff) {
+            if (this.priority > task.priority) {
+                return true;
+            } else if (this.priority == task.priority) {
+                return this.id < task.id;
+            }
+        }
+        return false;
     }
 }
 
@@ -73,11 +80,30 @@ export class SimpleTask extends Task {
     }
 
     execute(): Promise<void> {
-        this.status.status = EnumStatus.STARTED;
         return this._executeFunction().then(() => {
             this.status.status = EnumStatus.FINISHED;
         }).catch(() => {
             this.status.status = EnumStatus.FAILED;
+        });
+    }
+}
+
+export function simpleTaskAfter(name: string, seconds: number, exec: () => Promise<void>, priority: number = 100): SimpleTask {
+    return new SimpleTask(name, new Date(new Date().getTime() + seconds * 1000), exec, priority);
+}
+
+export class RepeatingTask extends SimpleTask {
+    private _interval: Date;
+
+    constructor(name: string, dueDate: Date, exec: () => Promise<void>, interval: Date, priority: number = 100) {
+        super(name, dueDate, exec, priority);
+        this._interval = interval;
+    }
+
+    execute(): Promise<void> {
+        return super.execute().then(() => {
+            this.dueDate = new Date(this.dueDate.getTime() + this._interval.getTime());
+            this.status.status = EnumStatus.CREATED;
         });
     }
 }
