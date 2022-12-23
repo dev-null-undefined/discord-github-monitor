@@ -5,6 +5,7 @@
   "description": "A simple Discord bot that monitors Git repositories for new releases or any other public changes.",
   "scripts": {
     "start:dev": "npx nodemon",
+    "start:dev:normal": "node --loader ts-node/esm ./src/main.ts",
     "build": "rimraf ./build && npx tsc",
     "start": "npm run build && node build/main.js"
   },
