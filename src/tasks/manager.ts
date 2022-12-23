@@ -20,6 +20,8 @@ export class TaskManager {
     executeLoop() {
         this.executeNext().then(() => {
             this.executeLoop();
+        }).catch(error => {
+            Logger.globalInstance.log("Failed executing task: " + error.message, LogLevel.ERROR);
         });
     }
 
