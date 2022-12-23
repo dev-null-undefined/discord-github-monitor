@@ -1,4 +1,4 @@
-import Discord, {ClientEvents, Events, REST, Routes} from "discord.js";
+import Discord, {ClientEvents, Events, REST, RESTPostAPIChatInputApplicationCommandsJSONBody, Routes} from "discord.js";
 import {DecoratorSettings, Logger, LogLevel} from "./logger.js";
 import {Awaitable} from "@discordjs/util";
 import {allCommands} from "./commands/all-commands.js";
@@ -63,7 +63,7 @@ export class Client {
 
         allCommands.forEach((commandGenerator) => {
             const command = commandGenerator();
-            this._commands.set(command.data.name, command);
+            this._commands.set(command.name, command);
         });
 
         this._logger = logger.clone();
@@ -158,8 +158,8 @@ export class Client {
     async registerCommands() {
         this._assertOk();
         this._logger.log("Registering commands...");
-        let commands: string[] = [];
-        this._commands.forEach((command) => commands.push(command.data.toJSON()));
+        let commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
+        this._commands.forEach((command) => commands.push(command.toDiscordSlashJSON()));
         await this._rest.put(
             Routes.applicationCommands(Settings.instance.discord.applicationId),
             {body: commands},
