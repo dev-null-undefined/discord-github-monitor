@@ -21,7 +21,6 @@ export class Status {
 
     set status(status: EnumStatus) {
         this._status = status;
-        Logger.globalInstance.log("Task status changed to " + EnumStatus[this._status], LogLevel.DEBUG);
     }
 }
 
@@ -82,8 +81,10 @@ export class SimpleTask extends Task {
     execute(): Promise<void> {
         return this._executeFunction().then(() => {
             this.status.status = EnumStatus.FINISHED;
+            Logger.globalInstance.log("Task " + this.name + " finished.", LogLevel.INFO);
         }).catch(() => {
             this.status.status = EnumStatus.FAILED;
+            Logger.globalInstance.log("Task " + this.name + " failed.", LogLevel.ERROR);
         });
     }
 }
