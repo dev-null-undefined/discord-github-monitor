@@ -137,20 +137,6 @@ export class Logger {
                 throw new Error('Invalid output type');
         }
         this._decorators = new PriorityList<CustomDecorator>((decorator: CustomDecorator) => decorator.priority);
-        this.decorate((message: string, level: LogLevel) => {
-            switch (level) {
-                case LogLevel.INFO:
-                    return chalk.blue(message);
-                case LogLevel.WARN:
-                    return chalk.yellow(message);
-                case LogLevel.ERROR:
-                    return chalk.red(message);
-                case LogLevel.DEBUG:
-                    return chalk.green(message);
-                default:
-                    return message;
-            }
-        });
     }
 
     decorate(decorator: ((message: string, level: LogLevel) => string) | CustomDecorator | DecoratorSettings, level = null) {
@@ -189,5 +175,34 @@ export class Logger {
             logger._decorators.add(decorator.clone());
         });
         return logger;
+    }
+}
+
+export class DateDecoratorSettings extends DecoratorSettings {
+    constructor() {
+        super();
+        this.prefixFunc = () => "[" + new Date().toISOString() + "] ";
+    }
+}
+
+export class LogLevelDecoratorSettings extends DecoratorSettings {
+    constructor() {
+        super();
+        this.levels = [LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.DEBUG];
+        this.decorator = (message: string, level: LogLevel) => {
+            switch (level) {
+                case LogLevel.INFO:
+                    return chalk.blue(message);
+                case LogLevel.WARN:
+                    return chalk.yellow(message);
+                case LogLevel.ERROR:
+                    return chalk.red(message);
+                case LogLevel.DEBUG:
+                    return chalk.green(message);
+                default:
+                    return message;
+            }
+        };
+        this.priority -= this.priority / 2;
     }
 }
