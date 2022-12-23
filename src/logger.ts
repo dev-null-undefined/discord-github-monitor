@@ -117,6 +117,7 @@ class PriorityList<T> {
 export class Logger {
     private _log: (message: string) => void;
     private _decorators: PriorityList<CustomDecorator>;
+    private static globalInstance: (Logger | null) = null;
 
     constructor(output = console.log) {
         switch (typeof output) {
@@ -175,6 +176,13 @@ export class Logger {
             logger._decorators.add(decorator.clone());
         });
         return logger;
+    }
+
+    static getGlobalInstance(): Logger {
+        if (Logger.globalInstance === null) {
+            Logger.globalInstance = new Logger();
+        }
+        return Logger.globalInstance;
     }
 }
 
