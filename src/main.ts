@@ -2,11 +2,11 @@ import {Logger, DateDecoratorSettings, LogLevelDecoratorSettings} from "./logger
 import {Client} from "./client.js";
 import {Settings} from "./settings.js";
 
-const logger = Logger.getGlobalInstance();
+const logger = Logger.globalInstance;
 logger.decorate(new DateDecoratorSettings());
 logger.decorate(new LogLevelDecoratorSettings());
 
-const settings = Settings.getInstance();
+const settings = Settings.instance;
 
 
 async function start() {

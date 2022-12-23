@@ -45,7 +45,7 @@ export class GitControllerDatabase {
 
         private _controllers: Map<url, GitController> = new Map<url, GitController>();
 
-        readonly storage = StorageManager.getInstance();
+        readonly storage = StorageManager.instance;
 
         private constructor() {
             this.storage.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
@@ -53,7 +53,7 @@ export class GitControllerDatabase {
             });
         }
 
-        static getInstance(): GitControllerDatabase {
+        static get instance(): GitControllerDatabase {
             if (this._instance === undefined) {
                 this._instance = new GitControllerDatabase();
             }

@@ -28,7 +28,7 @@ function assertAllPropertiesAreSet(object: any) {
 }
 
 export class Settings {
-    private static instance: Settings;
+    private static _instance: Settings;
     static readonly settingsPath = "./config/settings.json";
 
     static readonly unsetString: string = uuid();
@@ -44,11 +44,11 @@ export class Settings {
     }
 
 
-    static getInstance(): Settings {
-        if (!Settings.instance) {
-            Settings.instance = new Settings();
+    static get instance(): Settings {
+        if (!Settings._instance) {
+            Settings._instance = new Settings();
         }
-        return Settings.instance;
+        return Settings._instance;
     }
 
     token: string = Settings.unsetString;

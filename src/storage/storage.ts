@@ -73,7 +73,7 @@ class StorageExposer<T> {
 }
 
 export class StorageManager {
-    private static instance: StorageManager;
+    private static _instance: StorageManager;
     private static _storagePath: (string | null) = null;
 
     private _objects: Map<string, StoreUnit> = new Map();
@@ -85,7 +85,7 @@ export class StorageManager {
         const files = fs.readdirSync(StorageManager._storagePath);
         for (const file of files) {
             const stat = fs.statSync(StorageManager._storagePath + "/" + file);
-            const logger = Logger.getGlobalInstance();
+            const logger = Logger.globalInstance;
             if (stat.isDirectory()) {
                 logger.log(`Loading storage unit ${file}...`, LogLevel.DEBUG);
                 this._objects.set(file, StoreUnit.load(StorageManager._storagePath + "/" + file));
@@ -96,7 +96,7 @@ export class StorageManager {
     }
 
     private static set storagePath(path: string) {
-        if (StorageManager.instance) {
+        if (StorageManager._instance) {
             throw new Error("StorageManager already initialized!");
         }
 
@@ -113,11 +113,11 @@ export class StorageManager {
         StorageManager.storagePath = settings.storagePath;
     }
 
-    static getInstance(): StorageManager {
-        if (!StorageManager.instance) {
-            StorageManager.instance = new StorageManager();
+    static get instance(): StorageManager {
+        if (!StorageManager._instance) {
+            StorageManager._instance = new StorageManager();
         }
-        return StorageManager.instance;
+        return StorageManager._instance;
     }
 
     getAll<T>(typeId: string): Array<StorageExposer<T>> {
@@ -131,7 +131,7 @@ export class StorageManager {
     }
 
     save<T>(typeId: string, data: T): string {
-        const logger = Logger.getGlobalInstance();
+        const logger = Logger.globalInstance;
         const id = uuid();
         logger.log(`Saving storage unit ${id}...`, LogLevel.DEBUG);
         let path = StorageManager._storagePath + "/" + id;
