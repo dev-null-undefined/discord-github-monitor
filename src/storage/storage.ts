@@ -3,8 +3,13 @@ import {Logger, LogLevel} from "../logger.js";
 import {Settings} from "../settings.js";
 import {v4 as uuid} from 'uuid';
 
+type Path = string;
+
 
 class StorageData {
+
+    static readonly configPath = ".storage.json";
+
     readonly typeId: string;
     readonly data: any;
 
@@ -30,19 +35,19 @@ class StorageData {
         return new StorageData(path);
     }
 
-    static save(path: string, typeId: string, data: any ): StorageData {
+    static save(path: string, typeId: string, data: any): StorageData {
         return new StorageData(path, typeId, data);
     }
 }
 
 export class StoreUnit {
-    private readonly _path: string;
+    readonly path: string;
     readonly data: StorageData;
 
     private constructor(path: string, data?: StorageData) {
-        this._path = path;
+        this.path = path;
         if (data === undefined) {
-            this.data = StorageData.load(path + "/data.json");
+            this.data = StorageData.load(path + "/" + StorageData.configPath);
         } else {
             this.data = data;
         }
@@ -57,13 +62,26 @@ export class StoreUnit {
     }
 }
 
+class StorageExposer<T> {
+    readonly data: T;
+    readonly path: Path;
+
+    constructor(data: T, path: Path) {
+        this.data = data;
+        this.path = path;
+    }
+}
+
 export class StorageManager {
     private static instance: StorageManager;
-    private static _storagePath: string;
+    private static _storagePath: (string | null) = null;
 
     private _objects: Map<string, StoreUnit> = new Map();
 
     private constructor() {
+        if(StorageManager._storagePath === null) {
+            throw new Error("StorageManager not configured!");
+        }
         const files = fs.readdirSync(StorageManager._storagePath);
         for (const file of files) {
             const stat = fs.statSync(StorageManager._storagePath + "/" + file);
@@ -102,22 +120,26 @@ export class StorageManager {
         return StorageManager.instance;
     }
 
-    getAll<T>(typeId: string): Array<T> {
-        const result: Array<T> = [];
+    getAll<T>(typeId: string): Array<StorageExposer<T>> {
+        const result: Array<StorageExposer<T>> = [];
         this._objects.forEach((value) => {
             if (value.data.typeId === typeId) {
-                result.push(value.data.data as T);
+                result.push(new StorageExposer<T>(value.data.data as T, value.path + "/data"));
             }
         });
         return result;
     }
 
-    save<T>(typeId: string, data: T) {
+    save<T>(typeId: string, data: T): string {
         const logger = Logger.getGlobalInstance();
         const id = uuid();
         logger.log(`Saving storage unit ${id}...`, LogLevel.DEBUG);
-        fs.mkdirSync(StorageManager._storagePath + "/" + id);
-        const storageData = StorageData.save(StorageManager._storagePath + "/" + id + "/data.json", typeId, data);
-        this._objects.set(id, StoreUnit.create(StorageManager._storagePath + "/" + id, storageData));
+        let path = StorageManager._storagePath + "/" + id;
+        fs.mkdirSync(path);
+        const storageData = StorageData.save(path + "/" + StorageData.configPath, typeId, data);
+        const storeUnit = StoreUnit.create(path, storageData);
+        this._objects.set(id, storeUnit);
+        fs.mkdirSync(path + "/data");
+        return path + "/data";
     }
 }
