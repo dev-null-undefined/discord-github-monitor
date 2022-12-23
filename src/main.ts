@@ -5,6 +5,7 @@ import {GitControllerDatabase} from "./git/git.js";
 import {StorageManager} from "./storage/storage.js";
 import {TaskManager} from "./tasks/manager.js";
 import {SimpleTask} from "./tasks/task.js";
+import {SlashCommandBuilder} from "discord.js";
 
 const begin = new Date();
 
@@ -35,6 +36,8 @@ manager.addTask(new SimpleTask("DiscordSetup", begin, async () => {
 
     await client.loggedInPromise;
     await client.readyPromise;
+
+    await client.registerCommands();
 }));
 
 manager.executeLoop();

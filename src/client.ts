@@ -1,5 +1,9 @@
-import Discord, {ClientUser, GuildChannel, GuildTextBasedChannel} from "discord.js";
+import Discord, {ClientEvents, Events, REST, Routes} from "discord.js";
 import {DecoratorSettings, Logger, LogLevel} from "./logger.js";
+import {Awaitable} from "@discordjs/util";
+import {allCommands} from "./commands/all-commands.js";
+import {Settings} from "./settings.js";
+import {Command} from "./commands/command.js";
 
 export class ResolvablePromise<T> {
     private _resolve: (value: T | PromiseLike<T>) => void;
@@ -40,6 +44,10 @@ export class Client {
 
     state = States.CREATED;
 
+    private _rest: REST;
+
+    private _commands: Map<string, Command> = new Map<string, Command>();
+
     private _logger: Logger;
     private _token: string;
     private readonly _intents: number[];
@@ -51,6 +59,13 @@ export class Client {
 
 
     constructor(token: string, logger = new Logger()) {
+        this._rest = new REST({version: '10'}).setToken(token);
+
+        allCommands.forEach((commandGenerator) => {
+            const command = commandGenerator();
+            this._commands.set(command.data.name, command);
+        });
+
         this._logger = logger.clone();
         this._decoratorSettings = new DecoratorSettings();
         this._decoratorSettings.priority = 150;
@@ -67,7 +82,7 @@ export class Client {
             this._decoratorSettings.prefix = `[Client {${this._user.username}}] `;
         });
 
-        this._client.on("ready", () => {
+        this._client.on(Events.ClientReady, () => {
             if (!this._ready) {
                 throw new Error("Client is ready but no ready promise was already resolved!");
             }
@@ -77,21 +92,9 @@ export class Client {
             this._logger.log("Client is ready!");
             this._user.setActivity("git updates...", {type: Discord.ActivityType.Watching});
         });
-
-
-        // TODO: remove
-        this._client.on("messageCreate", (message) => {
-            if (message.author.bot) return;
-            // test if message is from guild and GuildTextBasedChannel
-            if (message.guildId && (message.channel instanceof GuildChannel) && message.inGuild()) {
-                this._logger.log(`Message received from ${message.author.username} in ${message.channel.name} in ${message.guild.name} "${message.content}"`);
-            } else {
-                this._logger.log(`Message received from ${message.author.username} "${message.content}"`);
-            }
-        });
     }
 
-    _assertClient() {
+    private _assertClient() {
         if (!this._client.user) {
             this._logger.log("Client has no user!", LogLevel.ERROR);
             this.state = States.FAILED;
@@ -99,13 +102,13 @@ export class Client {
         this._assertOk();
     }
 
-    _assertOk() {
+    private _assertOk() {
         if (this.state === States.FAILED) {
             throw new Error("Client is in failed state");
         }
     }
 
-    get _user(): Discord.ClientUser {
+    private get _user(): Discord.ClientUser {
         this._assertClient();
         if (this._client.user) {
             return this._client.user;
@@ -145,5 +148,47 @@ export class Client {
             return Promise.resolve();
         }
         return this._ready.promise;
+    }
+
+    on<S extends string | symbol>(event: Exclude<S, keyof ClientEvents>, listener: (...args: any[]) => Awaitable<void>,): this {
+        this._client.on(event, listener);
+        return this;
+    }
+
+    async registerCommands() {
+        this._assertOk();
+        this._logger.log("Registering commands...");
+        let commands: string[] = [];
+        this._commands.forEach((command) => commands.push(command.data.toJSON()));
+        await this._rest.put(
+            Routes.applicationCommands(Settings.instance.discord.applicationId),
+            {body: commands},
+        );
+        this._client.on(Events.InteractionCreate, async interaction => {
+            if (!interaction.isAutocomplete() && !interaction.isChatInputCommand()) return;
+            const command = this._commands.get(interaction.commandName);
+
+            if (!command) {
+                this._logger.log(`No command matching ${interaction.commandName} was found.`, LogLevel.ERROR);
+                return;
+            }
+            if (interaction.isChatInputCommand()) {
+                try {
+                    await command.execute(interaction);
+                } catch (error) {
+                    this._logger.log(`Error while executing command (${interaction.commandName}): ${error}`, LogLevel.ERROR);
+                }
+            } else if (interaction.isAutocomplete()) {
+                try {
+                    if (!command.completer) {
+                        this._logger.log(`This command does not support autocomplete ${interaction.commandName}.`, LogLevel.ERROR);
+                        return;
+                    }
+                    await command.completer(interaction);
+                } catch (error) {
+                    this._logger.log(`Error while autocompleting (${interaction.commandName}): ${error}`, LogLevel.ERROR);
+                }
+            }
+        })
     }
 }

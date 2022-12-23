@@ -63,7 +63,6 @@ function promiseAllMap<K, T>(map: Map<K, T | PromiseLike<T>>): Promise<Map<K, T>
 }
 
 export class GitController {
-
     readonly settings: GitControllerSettings;
 
     private _git: SimpleGit;
@@ -101,6 +100,15 @@ export class GitController {
         }
         return promiseAllMap(commits);
     }
+
+    addBranch(branch: string) {
+        this.settings.branches.push(branch);
+        StorageManager.instance.update(GitControllerSettings.typeId, this.settings, this._path);
+    }
+
+    get branches(): string[] {
+        return [...this.settings.branches]
+    }
 }
 
 export class GitControllerDatabase {
@@ -108,10 +116,8 @@ export class GitControllerDatabase {
 
     private _controllers: Map<url, GitController> = new Map<url, GitController>();
 
-    readonly storage = StorageManager.instance;
-
     private constructor() {
-        this.storage.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
+        StorageManager.instance.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
             this._controllers.set(settings.data.url, GitController.load(settings.data, settings.path));
         });
     }
@@ -128,10 +134,37 @@ export class GitControllerDatabase {
             return this._controllers.get(url)!;
         } else {
             const settings = new GitControllerSettings(url, branches);
-            const path = this.storage.save(GitControllerSettings.typeId, settings);
+            const path = StorageManager.instance.save(GitControllerSettings.typeId, settings);
             const controller = GitController.create(settings, path);
             this._controllers.set(url, controller);
             return controller;
         }
+    }
+
+    addBranch(url: url, branch: string) {
+        if (this._controllers.has(url)) {
+            this._controllers.get(url)!.addBranch(branch);
+        } else {
+            throw new Error("Controller not found!");
+        }
+    }
+
+    listControllers(url?: string | null): Map<String, string[]> {
+        let result = new Map<string, Array<string>>;
+        if (url !== undefined && url !== null) {
+            if (!this._controllers.has(url)) {
+                throw new Error("No repository with that URL!");
+            }
+            result.set(url, this.getController(url).branches)
+        } else {
+            this._controllers.forEach((controller, url) => {
+                result.set(url, controller.branches);
+            })
+        }
+        return result;
+    }
+
+    listURLs(): string[] {
+        return [...this._controllers.keys()];
     }
 }
