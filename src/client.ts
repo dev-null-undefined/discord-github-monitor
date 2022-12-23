@@ -1,20 +1,28 @@
 import Discord, {ClientUser, GuildChannel, GuildTextBasedChannel} from "discord.js";
 import {DecoratorSettings, Logger, LogLevel} from "./logger.js";
 
-class ResolvablePromise<T> {
-    resolve: (value: T | PromiseLike<T>) => void;
-    reject: (err?: any) => void;
-    promise: Promise<T>;
+export class ResolvablePromise<T> {
+    private _resolve: (value: T | PromiseLike<T>) => void;
+    private _reject: (err?: any) => void;
+    readonly promise: Promise<T>;
 
     constructor() {
-        this.resolve = () => {
+        this._resolve = () => {
         };
-        this.reject = () => {
+        this._reject = () => {
         };
         this.promise = new Promise((resolve: (value: T | PromiseLike<T>) => void, reject: (err?: any) => void) => {
-            this.resolve = resolve;
-            this.reject = reject;
+            this._resolve = resolve;
+            this._reject = reject;
         });
+    }
+
+    get resolve(): (value: T | PromiseLike<T>) => void {
+        return this._resolve;
+    }
+
+    get reject(): (err?: any) => void {
+        return this._reject;
     }
 }
 
