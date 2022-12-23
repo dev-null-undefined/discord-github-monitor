@@ -8,57 +8,53 @@ type Path = string;
 
 class StorageData {
 
-    static readonly configPath = ".storage.json";
+    private static readonly configPath = ".storage.json";
 
     readonly typeId: string;
-    readonly data: any;
+    readonly path: Path;
+    private _data: any;
 
-    private constructor(path: string, typeId?: string, data?: any) {
+    private constructor(path: Path, typeId?: string, data?: any) {
+        this.path = path;
         if ((typeId === undefined) != (data === undefined)) {
             // this is simulation of overloaded constructor
             throw new Error("typeId and data must be provided together or not at all");
         }
         if (typeId === undefined) {
-            const rawData = fs.readFileSync(path, {encoding: "utf-8"});
+            const rawData = fs.readFileSync(this._configPath(), {encoding: "utf-8"});
             const json = JSON.parse(rawData.toString());
             this.typeId = json.typeId;
-            this.data = json.data;
+            this._data = json.data;
         } else {
             this.typeId = typeId;
-            this.data = data;
-            fs.writeFileSync(path, JSON.stringify(this));
+            this._data = data;
+            fs.writeFileSync(this._configPath(), this._stringify());
         }
     }
 
+    private _configPath(): Path {
+        return this.path + "/" + StorageData.configPath;
+    }
 
-    static load(path: string): StorageData {
+    private _stringify(): string {
+        return JSON.stringify({typeId: this.typeId, data: this._data});
+    }
+
+    get data(): any {
+        return this._data;
+    }
+
+    set data(value: any) {
+        this._data = value;
+        fs.writeFileSync(this._configPath(), this._stringify());
+    }
+
+    static load(path: Path): StorageData {
         return new StorageData(path);
     }
 
-    static save(path: string, typeId: string, data: any): StorageData {
+    static save(path: Path, typeId: string, data: any): StorageData {
         return new StorageData(path, typeId, data);
-    }
-}
-
-export class StoreUnit {
-    readonly path: string;
-    readonly data: StorageData;
-
-    private constructor(path: string, data?: StorageData) {
-        this.path = path;
-        if (data === undefined) {
-            this.data = StorageData.load(path + "/" + StorageData.configPath);
-        } else {
-            this.data = data;
-        }
-    }
-
-    static load(path: string): StoreUnit {
-        return new StoreUnit(path);
-    }
-
-    static create(path: string, data: StorageData): StoreUnit {
-        return new StoreUnit(path, data);
     }
 }
 
@@ -74,9 +70,9 @@ class StorageExposer<T> {
 
 export class StorageManager {
     private static _instance: StorageManager;
-    private static _storagePath: (string | null) = null;
+    private static _storagePath: (Path | null) = null;
 
-    private _objects: Map<string, StoreUnit> = new Map();
+    private _objects: Map<Path, StorageData> = new Map();
 
     private constructor() {
         if (StorageManager._storagePath === null) {
@@ -88,14 +84,14 @@ export class StorageManager {
             const logger = Logger.globalInstance;
             if (stat.isDirectory()) {
                 logger.log(`Loading storage unit ${file}...`, LogLevel.DEBUG);
-                this._objects.set(file, StoreUnit.load(StorageManager._storagePath + "/" + file));
+                this._objects.set(file, StorageData.load(StorageManager._storagePath + "/" + file));
             } else {
                 logger.log("Found file in storage path: " + file, LogLevel.WARN);
             }
         }
     }
 
-    private static set storagePath(path: string) {
+    private static set storagePath(path: Path) {
         if (StorageManager._instance) {
             throw new Error("StorageManager already initialized!");
         }
@@ -123,23 +119,34 @@ export class StorageManager {
     getAll<T>(typeId: string): Array<StorageExposer<T>> {
         const result: Array<StorageExposer<T>> = [];
         this._objects.forEach((value) => {
-            if (value.data.typeId === typeId) {
-                result.push(new StorageExposer<T>(value.data.data as T, value.path + "/data"));
+            if (value.typeId === typeId) {
+                result.push(new StorageExposer<T>(value.data as T, value.path + "/data"));
             }
         });
         return result;
     }
 
-    save<T>(typeId: string, data: T): string {
+    save<T>(typeId: string, data: T): Path {
         const logger = Logger.globalInstance;
         const id = uuid();
         logger.log(`Saving storage unit ${id}...`, LogLevel.DEBUG);
         let path = StorageManager._storagePath + "/" + id;
         fs.mkdirSync(path);
-        const storageData = StorageData.save(path + "/" + StorageData.configPath, typeId, data);
-        const storeUnit = StoreUnit.create(path, storageData);
-        this._objects.set(id, storeUnit);
+        const storageData = StorageData.save(path, typeId, data);
+        this._objects.set(id, storageData);
         fs.mkdirSync(path + "/data");
         return path + "/data";
+    }
+
+    update<T>(typeId: string, data: T, path: Path) {
+        const storeUnit = this._objects.get(path);
+        if (storeUnit === undefined) {
+            throw new Error("Path does not exist!");
+        }
+        if (storeUnit.data.typeId !== typeId) {
+            throw new Error("Type id does not match!");
+        }
+        storeUnit.data.data = data;
+
     }
 }
