@@ -4,7 +4,7 @@ import {v4 as uuid} from 'uuid';
 function copyValues(from: any, to: any) {
     for (let key in from) {
         if (to.hasOwnProperty(key)) {
-            if(typeof from[key] === 'object') {
+            if (typeof from[key] === 'object') {
                 copyValues(from[key], to[key]);
             } else {
                 to[key] = from[key];

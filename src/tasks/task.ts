@@ -2,7 +2,7 @@ enum EnumStatus {
     CREATED,
     STARTED,
     FINISHED,
-    FAILED= -1,
+    FAILED = -1,
 }
 
 export class Status {

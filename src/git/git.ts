@@ -104,34 +104,34 @@ export class GitController {
 }
 
 export class GitControllerDatabase {
-        private static _instance: GitControllerDatabase;
+    private static _instance: GitControllerDatabase;
 
-        private _controllers: Map<url, GitController> = new Map<url, GitController>();
+    private _controllers: Map<url, GitController> = new Map<url, GitController>();
 
-        readonly storage = StorageManager.instance;
+    readonly storage = StorageManager.instance;
 
-        private constructor() {
-            this.storage.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
-                this._controllers.set(settings.data.url, GitController.load(settings.data, settings.path));
-            });
+    private constructor() {
+        this.storage.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
+            this._controllers.set(settings.data.url, GitController.load(settings.data, settings.path));
+        });
+    }
+
+    static get instance(): GitControllerDatabase {
+        if (this._instance === undefined) {
+            this._instance = new GitControllerDatabase();
         }
+        return this._instance;
+    }
 
-        static get instance(): GitControllerDatabase {
-            if (this._instance === undefined) {
-                this._instance = new GitControllerDatabase();
-            }
-            return this._instance;
+    getController(url: url, branches: string[] = ["master", "main"]): GitController {
+        if (this._controllers.has(url)) {
+            return this._controllers.get(url)!;
+        } else {
+            const settings = new GitControllerSettings(url, branches);
+            const path = this.storage.save(GitControllerSettings.typeId, settings);
+            const controller = GitController.create(settings, path);
+            this._controllers.set(url, controller);
+            return controller;
         }
-
-        getController(url: url, branches: string[] = ["master", "main"]): GitController {
-            if (this._controllers.has(url)) {
-                return this._controllers.get(url)!;
-            } else {
-                const settings = new GitControllerSettings(url, branches);
-                const path = this.storage.save(GitControllerSettings.typeId, settings);
-                const controller = GitController.create(settings, path);
-                this._controllers.set(url, controller);
-                return controller;
-            }
-        }
+    }
 }

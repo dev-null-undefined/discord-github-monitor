@@ -9,7 +9,7 @@
     "outDir": "build",
     "rootDir": "src",
     "noImplicitAny": true,
-    "strict": true,
+    "strict": true
   },
   "ts-node": {
     "esm": true

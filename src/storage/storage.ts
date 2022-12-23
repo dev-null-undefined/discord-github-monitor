@@ -79,7 +79,7 @@ export class StorageManager {
     private _objects: Map<string, StoreUnit> = new Map();
 
     private constructor() {
-        if(StorageManager._storagePath === null) {
+        if (StorageManager._storagePath === null) {
             throw new Error("StorageManager not configured!");
         }
         const files = fs.readdirSync(StorageManager._storagePath);

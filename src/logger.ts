@@ -56,7 +56,7 @@ class CustomDecorator {
         this._settings = decoratorSettings;
     }
 
-    decorate(text: string, level: LogLevel):string {
+    decorate(text: string, level: LogLevel): string {
         if (this._settings.level !== null && level !== this._settings.level) {
             return text;
         }
@@ -95,7 +95,7 @@ class PriorityList<T> {
         this._list.push(item);
     }
 
-    *[Symbol.iterator]() {
+    * [Symbol.iterator]() {
         for (let i = 0; i < this._list.length; i++) {
             yield this._list[i];
         }
@@ -163,7 +163,7 @@ export class Logger {
         }
     }
 
-    log(message:string, level:LogLevel = LogLevel.INFO) {
+    log(message: string, level: LogLevel = LogLevel.INFO) {
         this._decorators.forEach(decorator => {
             message = decorator.decorate(message, level);
         });
