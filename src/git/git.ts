@@ -124,6 +124,35 @@ export class GitController {
     get branches(): string[] {
         return [...this.settings.branches]
     }
+
+    get url(): url {
+        return this.settings.url;
+    }
+}
+
+export class GitFetchTask extends Task {
+
+    private static readonly _priority = 20;
+
+    readonly controller: GitController;
+    private readonly _interval: Date;
+
+    constructor(controller: GitController, interval: Date) {
+        super(`Git Fetch ${controller.url}`, new Date(), GitFetchTask._priority);
+        this.controller = controller;
+        this._interval = interval;
+    }
+
+    execute(): Promise<void> {
+        this.status.status = EnumStatus.STARTED;
+        return this.controller.fetch().then(() => {
+            this.dueDate = new Date(this.dueDate.getTime() + this._interval.getTime());
+            this.status.status = EnumStatus.CREATED;
+        }).catch((error) => {
+            this.status.status = EnumStatus.FAILED;
+            return Promise.reject(error);
+        });
+    }
 }
 
 export class GitControllerDatabase {
@@ -136,7 +165,9 @@ export class GitControllerDatabase {
     private constructor(taskManager: TaskManager) {
         this._taskManager = taskManager;
         StorageManager.instance.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
-            this._controllers.set(settings.data.url, GitController.load(settings.data, settings.path));
+            let controller = GitController.load(settings.data, settings.path);
+            this._controllers.set(settings.data.url, controller);
+            this._taskManager.addTask(new GitFetchTask(controller, new Date(TaskManager.HOUR)));
         });
     }
 
