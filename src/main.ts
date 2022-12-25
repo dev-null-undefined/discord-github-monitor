@@ -11,22 +11,26 @@ const begin = new Date();
 
 const manager = new TaskManager();
 
+const logger = Logger.getGlobalInstanceOrCreate();
+// logger is required by addTask method
+
 manager.addTask(new SimpleTask("LoggerSetup", begin, async () => {
-    const logger = Logger.globalInstance;
+    const logger = Logger.getGlobalInstanceOrCreate();
     logger.decorate(new DateDecoratorSettings());
     logger.decorate(new LogLevelDecoratorSettings());
 }));
 
 manager.addTask(new SimpleTask("LoadSettings", begin, async () => {
-    Settings.instance;
+    Settings.getInstanceOrCreate();
 }));
 
 manager.addTask(new SimpleTask("StorageSetup", begin, async () => {
     StorageManager.configure(Settings.instance);
+    StorageManager.getInstanceOrCreate();
 }));
 
 manager.addTask(new SimpleTask("GitSetup", begin, async () => {
-    const git = GitControllerDatabase.instance;
+    const git = GitControllerDatabase.getInstanceOrCreate(manager);
 }));
 
 manager.addTask(new SimpleTask("DiscordSetup", begin, async () => {

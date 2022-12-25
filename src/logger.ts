@@ -178,9 +178,16 @@ export class Logger {
         return logger;
     }
 
-    static get globalInstance(): Logger {
+    static getGlobalInstanceOrCreate(): Logger {
         if (Logger._globalInstance === null) {
             Logger._globalInstance = new Logger();
+        }
+        return Logger._globalInstance;
+    }
+
+    static get globalInstance(): Logger {
+        if (Logger._globalInstance === null) {
+            throw new Error("Global instance not set");
         }
         return Logger._globalInstance;
     }

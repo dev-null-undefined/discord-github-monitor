@@ -44,9 +44,16 @@ export class Settings {
     }
 
 
-    static get instance(): Settings {
+    static getInstanceOrCreate(): Settings {
         if (!Settings._instance) {
             Settings._instance = new Settings();
+        }
+        return Settings._instance;
+    }
+
+    static get instance(): Settings {
+        if (!Settings._instance) {
+            throw new Error("Settings instance is not created yet!");
         }
         return Settings._instance;
     }

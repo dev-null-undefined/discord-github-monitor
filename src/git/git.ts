@@ -1,6 +1,8 @@
 import {SimpleGit, simpleGit, FetchResult, LogResult} from 'simple-git';
 import {StorageManager} from "../storage/storage.js";
 import {Logger, LogLevel} from "../logger.js";
+import {TaskManager} from "../tasks/manager.js";
+import {EnumStatus, RepeatingTask, Task} from "../tasks/task.js";
 
 type url = string;
 type path = string;
@@ -129,15 +131,25 @@ export class GitControllerDatabase {
 
     private _controllers: Map<url, GitController> = new Map<url, GitController>();
 
-    private constructor() {
+    private readonly _taskManager: TaskManager;
+
+    private constructor(taskManager: TaskManager) {
+        this._taskManager = taskManager;
         StorageManager.instance.getAll<GitControllerSettings>(GitControllerSettings.typeId).forEach(settings => {
             this._controllers.set(settings.data.url, GitController.load(settings.data, settings.path));
         });
     }
 
+    static getInstanceOrCreate(taskManager: TaskManager): GitControllerDatabase {
+        if (this._instance === undefined) {
+            this._instance = new GitControllerDatabase(taskManager);
+        }
+        return this._instance;
+    }
+
     static get instance(): GitControllerDatabase {
         if (this._instance === undefined) {
-            this._instance = new GitControllerDatabase();
+            throw new Error("GitControllerDatabase not initialized");
         }
         return this._instance;
     }
@@ -150,6 +162,7 @@ export class GitControllerDatabase {
             const path = StorageManager.instance.save(GitControllerSettings.typeId, settings);
             const controller = GitController.create(settings, path);
             this._controllers.set(url, controller);
+            this._taskManager.addTask(new GitFetchTask(controller, new Date(TaskManager.HOUR)));
             return controller;
         }
     }

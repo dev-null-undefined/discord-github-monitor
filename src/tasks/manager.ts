@@ -15,6 +15,7 @@ export class TaskManager {
         this._tasks.push(task);
         this._addedNewTask.resolve();
         this._addedNewTask = new ResolvablePromise<void>();
+        Logger.globalInstance.log(`Added task ${task.name} to the task list, with expirity at ${task.dueDate}.`, LogLevel.DEBUG);
     }
 
     executeLoop() {

@@ -109,9 +109,16 @@ export class StorageManager {
         StorageManager.storagePath = settings.storagePath;
     }
 
-    static get instance(): StorageManager {
+    static getInstanceOrCreate(): StorageManager {
         if (!StorageManager._instance) {
             StorageManager._instance = new StorageManager();
+        }
+        return StorageManager._instance;
+    }
+
+    static get instance(): StorageManager {
+        if (!StorageManager._instance) {
+            throw new Error("StorageManager not initialized!");
         }
         return StorageManager._instance;
     }
