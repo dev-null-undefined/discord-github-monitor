@@ -19,13 +19,13 @@ export class GitControllerSettings {
 }
 
 
-function promiseAllOutOfOrder<T>(values: (T | PromiseLike<T>)[]): Promise<Awaited<T>[]> {
+function promiseAllOutOfOrder<T>(values: Promise<T>[]): Promise<T[]> {
     return new Promise((resolve) => {
-        let results = new Array<Awaited<T>>();
+        let results = new Array<T>();
         let completed = 0;
 
         values.forEach((value) => {
-            Promise.resolve(value).then(result => {
+            value.then(result => {
                 results.push(result);
                 completed += 1;
 
@@ -35,18 +35,25 @@ function promiseAllOutOfOrder<T>(values: (T | PromiseLike<T>)[]): Promise<Awaite
             }).catch(error => {
                 Logger.globalInstance.log(error.message, LogLevel.ERROR);
                 completed += 1;
+                if (completed == values.length) {
+                    resolve(results);
+                }
             });
         });
+
+        if (completed == values.length) {
+            resolve(results);
+        }
     });
 }
 
-function promiseAllMap<K, T>(map: Map<K, T | PromiseLike<T>>): Promise<Map<K, T>> {
+function promiseAllMap<K, T>(map: Map<K, Promise<T>>): Promise<Map<K, T>> {
     return new Promise((resolve, reject) => {
         let results = new Map<K, T>();
         let completed = 0;
 
         map.forEach((value, index) => {
-            Promise.resolve(value).then(result => {
+            value.then(result => {
                 results.set(index, result);
                 completed += 1;
 
@@ -56,9 +63,15 @@ function promiseAllMap<K, T>(map: Map<K, T | PromiseLike<T>>): Promise<Map<K, T>
             }).catch(error => {
                 completed += 1;
                 Logger.globalInstance.log(error.message, LogLevel.ERROR);
-                return Promise.resolve(error);
+
+                if (completed == map.size) {
+                    resolve(results);
+                }
             });
         });
+        if (completed == map.size) {
+            resolve(results);
+        }
     });
 }
 
