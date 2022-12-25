@@ -3,6 +3,12 @@ import {ResolvablePromise} from "../client.js";
 import {Logger, LogLevel} from "../logger.js";
 
 export class TaskManager {
+
+    static readonly SECONDS = 1000;
+    static readonly MINUTE = 60 * TaskManager.SECONDS;
+    static readonly HOUR = 60 * TaskManager.MINUTE;
+    static readonly DAY = 24 * TaskManager.HOUR;
+
     private _tasks: Task[];
     private _addedNewTask: ResolvablePromise<void>;
 
