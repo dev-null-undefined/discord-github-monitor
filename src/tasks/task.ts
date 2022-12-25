@@ -79,6 +79,7 @@ export class SimpleTask extends Task {
     }
 
     execute(): Promise<void> {
+        this.status.status = EnumStatus.STARTED;
         return this._executeFunction().then(() => {
             this.status.status = EnumStatus.FINISHED;
         }).catch((error) => {
@@ -104,6 +105,9 @@ export class RepeatingTask extends SimpleTask {
         return super.execute().then(() => {
             this.dueDate = new Date(this.dueDate.getTime() + this._interval.getTime());
             this.status.status = EnumStatus.CREATED;
+        }).catch((error) => {
+            this.status.status = EnumStatus.FAILED;
+            return Promise.reject(error);
         });
     }
 }
