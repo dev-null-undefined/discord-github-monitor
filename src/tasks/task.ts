@@ -81,10 +81,8 @@ export class SimpleTask extends Task {
     execute(): Promise<void> {
         return this._executeFunction().then(() => {
             this.status.status = EnumStatus.FINISHED;
-            Logger.globalInstance.log("Task " + this.name + " finished.", LogLevel.INFO);
         }).catch((error) => {
             this.status.status = EnumStatus.FAILED;
-            Logger.globalInstance.log("Task " + this.name + " failed." + error.message, LogLevel.ERROR);
             return Promise.reject(error);
         });
     }

@@ -24,12 +24,26 @@ export class TaskManager {
         Logger.globalInstance.log(`Added task ${task.name} to the task list, with expirity at ${task.dueDate}.`, LogLevel.DEBUG);
     }
 
-    executeLoop() {
-        this.executeNext().then(() => {
-            this.executeLoop();
-        }).catch(error => {
-            Logger.globalInstance.log("Failed executing task: " + error.message, LogLevel.ERROR);
-        });
+    async executeLoop(exitOnFailure: boolean = true, exitOnEmpty: boolean = false) {
+        while (!exitOnEmpty || this._tasks.length > 0) {
+            const task = await this.getImportantTasks();
+            try {
+                Logger.globalInstance.log(`Executing task ${task.name}.`, LogLevel.DEBUG);
+                const result = await task.execute();
+                Logger.globalInstance.log("Task " + task.name + " finished.", LogLevel.INFO);
+            } catch (error: any) {
+                if (error instanceof Error) {
+                    Logger.globalInstance.log("Failed executing task: " + error.message, LogLevel.ERROR);
+                } else if (typeof error === "string") {
+                    Logger.globalInstance.log("Failed executing task: " + error, LogLevel.ERROR);
+                } else {
+                    Logger.globalInstance.log("Failed executing task.", LogLevel.ERROR);
+                }
+                if (exitOnFailure) {
+                    break;
+                }
+            }
+        }
     }
 
     executeNext(): Promise<void> {
@@ -49,6 +63,7 @@ export class TaskManager {
 
         const availableTasks = this._tasks.filter(t => t.status.status == EnumStatus.CREATED);
         if (availableTasks.length == 0) {
+            Logger.globalInstance.log("No tasks available. Waiting for new tasks.", LogLevel.DEBUG);
             return new Promise((resolve) => {
                 this._addedNewTask.promise.then(() => {
                     resolve(this.getImportantTasks());
@@ -65,6 +80,7 @@ export class TaskManager {
         }, availableTasks[0])
 
         if (task.dueDate.getTime() - date.getTime() > 0) {
+            Logger.globalInstance.log(`Waiting for task ${task.name} to be due. (${task.dueDate.getTime() - date.getTime()} ms)`, LogLevel.DEBUG);
             return new Promise((resolve) => {
                 setTimeout(() => {
                     resolve(task);
